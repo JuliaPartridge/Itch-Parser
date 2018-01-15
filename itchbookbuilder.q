@@ -6,7 +6,7 @@ usage:{-1
   ####################################### ITCH bookbuilder ################################################\n
   This script is used with the tables created by itchparser.q to build an orderbook for a day's trading.   \n
   The sample usage is as follows:                                                                          \n
-  q itchbookbuilder.q -init 1 -date 2017.08.30 -size 50 -hdb HDB -tablename book                          \n
+  q itchbookbuilder.q -init 1 -date 2017.08.30 -size 50 -hdb HDB -tablename book                           \n
   init is a boolean which tells q to build and save the orderbook automatically. The dafault value is 1    \n
   date will default to today's date if none is provided                                                    \n
   size is the number of stocks to build the orderbook of at any one time. This is done to prevent memory   \n
