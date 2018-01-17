@@ -13,7 +13,7 @@ usage:{-1
   issues. It defaults to 100 stocks which was fast when tested on a machine with 16048 MB of RAM and 8     \n
   cores.                                                                                                   \n
   hdb is the location of the parsed itch files. The orderbook will save in this directory. The default 	   \n
-  argument is NASDAQITCH/								                                                                   \n
+  argument is HDB/								                                                                         \n
   tablename is what you wish to call the orderbook within the hdb. The default argument is book	           \n"
   ;exit[0]}
 if[`usage in key p; usage[]]
