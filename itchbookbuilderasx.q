@@ -22,8 +22,8 @@ if[`usage in key p;usage[]]
 /############################### Create pidmapping ###############################
 gettables:{[o]
   system"l ",string[o`hdb],"/";                                                                     /Obtain data for in memory table operations
-  getinst::distinct select `$instrument,instrumid from futuresd;                                    /Table of each instrument id and corresponding instrument
-  instd::![x;{exec instrumid from getinst where instrument = x}each x:distinct exec instrument from getinst]; /Dictionary of each instrument and its ids
+  getinst::distinct select `$instrument,instrumid from futuresd where date=o`date;                  /Table of each instrument id and corresponding instrument
+  instd::![x;{exec instrumid from getinst where instrument=x}each x:distinct exec instrument from getinst]; /Dictionary of each instrument and its ids
   instdr::![exec instrumid from getinst;exec instrument from getinst];                              /Dictionary of instrument id and corresponding instrument 
  }
  
@@ -38,13 +38,13 @@ bookbuild:{[t;act;ref;sd;sz;px]
   t
  };                                                                                                 /when the action is delete.
 
-getdatapieces:{[ijid](                                                                              /Since there is no stock to select, use ijid -based on symids above- to select by stock.
-  select seqno,timestamp,instrumid,side,orderid,size:0 from odelete where instrumid in ijid;
-  select seqno,timestamp,instrumid,side,orderid,size from oexecuted where instrumid in ijid;        /List of tables which will be assigned actions based on which table they came from  
-  select seqno,timestamp,instrumid,side,orderid,size from ocancel where instrumid in ijid;          /Tables later used in the bookbuilder function
-  select seqno,timestamp,instrumid,side,orderid,size from aoexecuted where instrumid in ijid;
-  select seqno,timestamp,instrumid,side,orderid,size from coexecuted where instrumid in ijid;
-  select seqno,timestamp,instrumid,side,orderid,size:0 from iodelete where instrumid in ijid)
+getdatapieces:{[d;ijid](                                                                            /Since there is no stock to select, use ijid -based on symids above- to select by stock.
+  select seqno,timestamp,instrumid,side,orderid,size:0 from odelete where date=d,instrumid in ijid;
+  select seqno,timestamp,instrumid,side,orderid,size from oexecuted where date=d,instrumid in ijid; /List of tables which will be assigned actions based on which table they came from  
+  select seqno,timestamp,instrumid,side,orderid,size from ocancel where date=d,instrumid in ijid;   /Tables later used in the bookbuilder function
+  select seqno,timestamp,instrumid,side,orderid,size from aoexecuted where date=d,instrumid in ijid;
+  select seqno,timestamp,instrumid,side,orderid,size from coexecuted where date=d,instrumid in ijid;
+  select seqno,timestamp,instrumid,side,orderid,size:0 from iodelete where date=d,instrumid in ijid)
  };
 
 sortbook:{[bidaskbook;bidbook;askbook]
@@ -76,18 +76,20 @@ bookbuilder:{[d;syms]                                                           
  
   ijid:raze instd c;                                                                                /Get instrument ids for relevent instruments
 
-  itchdatapieces:getdatapieces[ijid];
+  itchdatapieces:getdatapieces[d;ijid];
  
-  addordertable:select seqno,timestamp,instrumid,side,orderid,size,price from oadd where instrumid in ijid;
-  addiordertable:select seqno,timestamp,instrumid,side,orderid,size,price from ioadd where instrumid in ijid;
-  addioreplacetable:select seqno,timestamp,instrumid,side,orderid,size,price from ioreplace where instrumid in ijid;
+  addordertable:select seqno,timestamp,instrumid,side,orderid,size,price from oadd where date=d,instrumid in ijid;
+  addiordertable:select seqno,timestamp,instrumid,side,orderid,size,price from ioadd where date=d,instrumid in ijid;
+  addioreplacetable:select seqno,timestamp,instrumid,side,orderid,size,price from ioreplace where date=d,instrumid in ijid;
+
+  stockdir:1!select instrumid,pricefrac from futuresd where date=d;
 
   addordertable:delete pricefrac from update price:price%pricefrac from                             /Update price from each table by dividing the price by the 
-    ij[addordertable;1!select instrumid,pricefrac from futuresd];                                   /fractional denominator to yield the floating point price
+    ij[addordertable;stockdir];                                                                     /fractional denominator to yield the floating point price
   addiordertable:delete pricefrac from update price:price%pricefrac from
-    ij[addiordertable;1!select instrumid,pricefrac from futuresd];
+    ij[addiordertable;stockdir];
   addioreplacetable:delete pricefrac from update price:price%pricefrac from                         /Fractional denominator taken from stockdirectory for each id 
-    ij[addioreplacetable;1!select instrumid,pricefrac from futuresd];
+    ij[addioreplacetable;stockdir];
 
   itchdata:update `g#action,`g#instrumid,`g#side from `seqno xasc select from                       /Apply g attributes to speed reading for the bookbuilding
     uj/[
