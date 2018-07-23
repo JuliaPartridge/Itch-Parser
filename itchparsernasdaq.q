@@ -2,8 +2,8 @@
 
 /NASDAQ files have the date in middle-endian format, so convert to big-endian.
 /default date function works for YYYYMMDD format
-/for NASDAQ files use the flag with the following argument for DDMMYYYY format
-/ -datefunc "{neg[14h]\$ string[x][4 5 6 7 0 1 2 3]}"
+/for NASDAQ files use the flag with the following argument for MMDDYYYY format
+/-datefunc "{\"D\"\$(raze -1#\"/\" vs string x)[4 5 6 7 0 1 2 3]}"
 dfltdatefunc:{"D"$8# raze -1#"/" vs string x}
 
 p:.Q.def[`init`exit`itchfile`cutsize`save`saveto`datefunc!(1b;1b;`$(string .z.d)[5 6 8 9 0 1 2 3],".PSX_ITCH_50";20000;1b;`HDB; enlist -3!dfltdatefunc)].Q.opt .z.x

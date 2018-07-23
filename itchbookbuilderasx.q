@@ -14,9 +14,9 @@ usage:{-1
   cores.                                                                                                   \n
   stock is the list of stock to build the orderbook, the default is all                                    \n
   hdb is the location of the parsed itch files. The orderbook will save in this directory. The default 	   \n
-  argument is HDB/							                                   \n
+  argument is HDB/							                                                               \n
   tablename is what you wish to call the orderbook within the hdb. The default argument is book	           \n"
-  ;exit[0]}
+  ;exit 0}
 if[`usage in key p;usage[]]
 
 /############################### Create pidmapping ###############################
@@ -114,7 +114,6 @@ bookbuilder:{[d;syms]                                                           
     aj[`seqno;book;offtab];                                                                         /Join time offset to each order book message
 
   book:`date`timestamp`stock xcols delete instrumid,second from book                                /Reorder and delete columns
-
   ;book
  };
 
