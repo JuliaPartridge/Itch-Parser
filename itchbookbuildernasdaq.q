@@ -122,7 +122,6 @@ bookbuilder:{[d;syms]                                                           
     from update bbsize:first each bsizes,basize:first each asizes 
       from aggregate[sbook] 
   ;book
-  ;'break
  };
 
 savebook:{[d;tablename;stock] hsym[`$"/" sv string(d;tablename;`)] 
