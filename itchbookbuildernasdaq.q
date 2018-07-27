@@ -6,7 +6,7 @@ usage:{-1
   ####################################### ITCH bookbuilder ################################################\n
   This script is used with the tables created by itchparser.q to build an orderbook for a day's trading.   \n
   The sample usage is as follows:                                                                          \n
-  q itchbookbuildernasdaq.q -init 1 -date 2017.07.28 -size 50 -hdb HDB -tablename book -stock SPY -noexit  \n
+  q itchbookbuildernasdaq.q -init 1 -date 2017.07.28 -size 50 -hdb HDB -tablename book -stock SPY          \n
   init is a boolean which tells q to build and save the orderbook automatically. The dafault value is 1    \n
   date will default to today's date if none is provided                                                    \n
   size is the number of stocks to build the orderbook of at any one time. This is done to prevent memory   \n
@@ -25,6 +25,10 @@ gettables:{[o]
   replacetab::select from oreplace where date=o`date;	                                            /Obtain data for in memory table operations, i.e. union join.
   addtab::select from oadd where date=o`date;
   addmpidtab::select from oaddmpid where date=o`date;
+  deletetab::select from odelete where date=o`date;
+  executedtab::select from oexecuted where date=o`date;
+  canceltab::select from ocancel where date=o`date;
+  executedwptab::select from oexecutedwp where date=o`date;
  }
  
 tableprep:{
@@ -46,7 +50,7 @@ tableprep:{
 
 bookbuild:{[t;act;ref;sd;sz;px;tm]
   t:@[t;sd;,;
-    $[act="E";`pid`shares!(ref;0^t[sd][ref;`shares]-sz);                                            /If the action is exec remove the correct number of shares, else preform an upsert.
+    $[act in "EXC";`pid`shares!(ref;0^t[sd][ref;`shares]-sz);                                       /If the action is exec remove the correct number of shares, else preform an upsert.
       `pid`shares`price!(ref;sz;px)]];
   if[0=t[sd][ref;`shares];                                                                          /If the number of shares in an order is zero, delete it. This takes care if the case
     t:@[t;sd;_;ref]];
@@ -54,11 +58,11 @@ bookbuild:{[t;act;ref;sd;sz;px;tm]
  };                                                                                                 /when the action is delete.
 
 getdatapieces:{[ijid](                                                                              /Since there is no stock to select, use ijid -based on symids above- to select by stock.
-  select seqno,time,shares:0,ids:`u#orderref from odelete where orderref in ijid;
-  select seqno,time,shares,price,ids:`u#origorderref from oreplace where origorderref in ijid;      /This is a list of tables which we will then assign actions based on which table they came from.
-  select seqno,time,shares,ids:orderref from oexecuted where orderref in ijid;                      /This is used in the bookbuilder function.
-  select seqno,time,shares:cancelled,ids:orderref from ocancel where orderref in ijid;
-  select seqno,time,shares,ids:orderref from oexecutedwp where orderref in ijid)
+  select seqno,time,shares:0,ids:`u#orderref from deletetab where orderref in ijid;
+  select seqno,time,shares,price,ids:`u#origorderref from replacetab where origorderref in ijid;    /This is a list of tables which we will then assign actions based on which table they came from.
+  select seqno,time,shares,ids:orderref from executedtab where orderref in ijid;                    /This is used in the bookbuilder function.
+  select seqno,time,shares:cancelled,ids:orderref from canceltab where orderref in ijid;
+  select seqno,time,shares,ids:orderref from executedwptab where orderref in ijid)
  };
 
 sortbook:{[bidaskbook;bidbook;askbook]
@@ -94,16 +98,18 @@ bookbuilder:{[d;syms]                                                           
 
   itchdatapieces:getdatapieces[ijid];
 
-  addordertable:enlist uj[select seqno,time,ids:orderref,side,shares,stock,price from addtab where stock in syms;
-    select seqno,time,ids:orderref,side,shares,stock,price from addmpidtab where stock in syms];
+  addordertable:select seqno,time,ids:orderref,side,shares,stock,price from addtab where stock in syms;
+  addmpidordertable:select seqno,time,ids:orderref,side,shares,stock,price from addmpidtab where stock in syms;
+  addtables:enlist[addordertable],enlist addmpidordertable;
 
   itchdata:update `g#action,`g#stock,`g#side from `seqno xasc delete id from                        /Apply g attributes to speed reading for the bookbuilding.
     uj/[
-      {[x;t]update action:x from t}'["ADUEEE";                                                      /Give tables their actions
-    ij\:[addordertable,itchdatapieces;symids]]                                                      /Join the stock col to each of the tables found in the itchdatapieces. 
+      {[x;t]update action:x from t}'["AFDUEXC";                                                     /Give tables their actions
+    ij\:[addtables,itchdatapieces;symids]]                                                          /Join the stock col to each of the tables found in the itchdatapieces. 
                                                                                                     /The add table is added to this list -no need to 
-  ];												    /add the stock col here as it is already on this table.
-
+  ];	                                             											    /add the stock col here as it is already on this table.
+ 
+ 
   bidaskbook:update book:bookbuild\[("BS"!2#enlist bookbuildschema);action;pid;side;shares;price;time]  /Build two books, the bidbook and askbook.
     by stock from itchdata;
  
@@ -116,6 +122,7 @@ bookbuilder:{[d;syms]                                                           
     from update bbsize:first each bsizes,basize:first each asizes 
       from aggregate[sbook] 
   ;book
+  ;'break
  };
 
 savebook:{[d;tablename;stock] hsym[`$"/" sv string(d;tablename;`)] 
