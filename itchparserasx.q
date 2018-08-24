@@ -1,8 +1,8 @@
 							/############################### User inputs ###############################
 
-/NASDAQ files have the date in middle-endian format, so convert to big-endian.
+/files that have the date in middle-endian format, convert to big-endian.
 /default date function works for YYYYMMDD format
-/for NASDAQ files use the flag with the following argument for DDMMYYYY format
+/for middle-endian format files use the flag with the following argument for DDMMYYYY format
 / -datefunc "{neg[14h]\$ string[x][4 5 6 7 0 1 2 3]}"
 /dfltdatefunc:{"D"$8# raze -1#"/" vs string x}
 asxdatefunc:{"D"$"20",4_10#raze -1#"/" vs raze string x}
@@ -44,10 +44,6 @@ typesf:(!) . flip
    (`numeric2;{256 sv x});
    (`numeric4;{256 sv x});
    (`numeric8;{256 sv x})
-   /(`tstmpcon;{256 sv x});
-   /(`tradedate;{1970.01.01+256 sv x});
-   /(`timezone;{`date$`timestamp$(1970.01.01+(256 sv x)%86400)+`second$60*60*11});
-   /(`secconv;{1970.01.01+(256 sv x)%86400})
   )
 
 msgoffsets:(!) . flip

@@ -53,7 +53,7 @@ bookbuilder:{[d;syms]                                                           
  symids:`ids xkey select from pidmapping where stock in syms;       					                      /Select relevant entries from the pidmapping for use with an inner join.
  
  ijid:exec ids from symids;
- 
+
  itchdatapieces:(											                                                              /Since there is no stock to select, use ijid -based on symids above- to select by stock.
  select time,shares:0, ids:`u#orderref from odelete where orderref in ijid;
   select time,shares,price, ids:`u#origorderref from oreplace where origorderref in ijid;	          /This is a list of tables which we will then assign actions based on which table they came from.
@@ -101,6 +101,7 @@ bookbuilder:{[d;syms]                                                           
               ,'bidbook
               ,'askbook
  ;book
+ ;'break;
  }
 
 savebook:{[d;tablename;stock] hsym[`$(string d),"/",tablename,"/"] 
